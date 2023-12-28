@@ -1,0 +1,54 @@
+pipeline {
+    agent any
+    
+    stages {
+        stage('Build') {
+            steps {
+                // Pull the Todo app image
+                sh 'sudo docker pull snaket2628/netflix-clone:latest'
+            }
+        }
+        stage('Stop Previous Container') {
+            steps {
+                script {
+                    def containerID = sh(script: "sudo docker ps -q --filter ancestor=snaket2628/netflix-clone:latest", returnStdout: true).trim()
+                    if (containerID != "") {
+                        sh "sudo docker stop ${containerID}"
+                        sh "sudo docker rm ${containerID}"
+                    }
+                }
+            }
+        }
+        stage('Approval') {
+            steps {
+                // Test the deployed application
+                script {
+                    input message: 'Is image pulled correctly?', ok: 'Confirm' // Prompt human acceptance
+                }
+            }
+        }
+        stage('Deploy') {
+            steps {
+                // Deploy the netflix app
+                sh 'sudo docker run -d -p 80:80 --name netflix-clone snaket2628/netflix-clone:latest'
+            }
+        }
+        stage('Testing') {
+            steps {
+                // Test the deployed application
+                script {
+                    sh 'sudo docker ps | grep snaket2628/netflix-clone:latest'
+                    echo "everything running fine"
+                }
+            }
+        }
+        stage('Accepting') {
+            steps {
+                // Test the deployed application
+                script {
+                    input message: 'Is the application working as expected?', ok: 'Confirm' // Prompt human acceptance
+                }
+            }
+        }
+    }
+}
