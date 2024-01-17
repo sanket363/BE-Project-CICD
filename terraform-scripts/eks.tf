@@ -5,7 +5,7 @@ module "eks"{
     cluster_version = "1.23"
     subnets = module.vpc.private_subnets
 tags = {
-        Name = "Piyush-EKS-Cluster"
+        Name = "EKS-Cluster"
     }
 vpc_id = module.vpc.vpc_id
     workers_group_defaults = {
