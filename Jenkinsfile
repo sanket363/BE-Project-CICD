@@ -1,52 +1,72 @@
 pipeline {
     agent any
+    environment {
+        AWS_ACCESS_KEY_ID = credentials('AWS_ACCESS_KEY_ID')
+        AWS_SECRET_ACCESS_KEY = credentials('AWS_SECRET_ACCESS_KEY')
+        AWS_DEFAULT_REGION = "us-east-1"
+    }
     stages {
-        stage('Build') {
-            steps {
-                // Pull the Todo app image
-                sh 'docker pull snaket2628/netflix-clone:latest'
+        stage('Checkout SCM'){
+            steps{
+                script{
+                    checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/gauri17-pro/terraform-jenkins-eks.git']])
+                }
             }
         }
-        stage('Stop Previous Container') {
-            steps {
-                script {
-                    def containerID = sh(script: "docker ps -q --filter ancestor=snaket2628/netflix-clone:latest", returnStdout: true).trim()
-                    if (containerID != "") {
-                        sh "docker stop ${containerID}"
-                        sh "docker rm ${containerID}"
+        stage('Initializing Terraform'){
+            steps{
+                script{
+                    dir('EKS'){
+                        sh 'terraform init'
                     }
                 }
             }
         }
-        stage('Approval') {
-            steps {
-                // Test the deployed application
-                script {
-                    input message: 'Is image pulled correctly?', ok: 'Confirm' // Prompt human acceptance
+        stage('Formatting Terraform Code'){
+            steps{
+                script{
+                    dir('EKS'){
+                        sh 'terraform fmt'
+                    }
                 }
             }
         }
-        stage('Deploy') {
-            steps {
-                // Deploy the Todo app
-                sh 'docker run -d -p 80:80 --name todo-app snaket2628/netflix-clone:latest'
-            }
-        }
-        stage('Testing') {
-            steps {
-                // Test the deployed application
-                script {
-                    sh 'docker ps | grep snaket2628/netflix-clone:latest'
-                    sh 'docker exec f75a25a430aa curl -Is http://52.66.252.9 | head -1 | awk '{print $2}''
-                    echo "everything running fine"
+        stage('Validating Terraform'){
+            steps{
+                script{
+                    dir('EKS'){
+                        sh 'terraform validate'
+                    }
                 }
             }
         }
-        stage('Accepting') {
-            steps {
-                // Test the deployed application
-                script {
-                    input message: 'Is the application working as expected?', ok: 'Confirm' // Prompt human acceptance
+        stage('Previewing the Infra using Terraform'){
+            steps{
+                script{
+                    dir('EKS'){
+                        sh 'terraform plan'
+                    }
+                    input(message: "Are you sure to proceed?", ok: "Proceed")
+                }
+            }
+        }
+        stage('Creating/Destroying an EKS Cluster'){
+            steps{
+                script{
+                    dir('EKS') {
+                        sh 'terraform $action --auto-approve'
+                    }
+                }
+            }
+        }
+        stage('Deploying Nginx Application') {
+            steps{
+                script{
+                    dir('EKS/ConfigurationFiles') {
+                        sh 'aws eks update-kubeconfig --name my-eks-cluster'
+                        sh 'kubectl apply -f deployment.yaml'
+                        sh 'kubectl apply -f service.yaml'
+                    }
                 }
             }
         }
