@@ -9,7 +9,7 @@ pipeline {
         stage('Checkout SCM'){
             steps{
                 script{
-                    checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/gauri17-pro/terraform-jenkins-eks.git']])
+                    checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/sanket363/BE-Project-CICD.git']])
                 }
             }
         }
@@ -54,18 +54,18 @@ pipeline {
             steps{
                 script{
                     dir('EKS') {
-                        sh 'terraform $action --auto-approve'
+                        sh 'terraform apply --auto-approve'
                     }
                 }
             }
         }
-        stage('Deploying Nginx Application') {
+        stage('Deploying Application') {
             steps{
                 script{
                     dir('EKS/ConfigurationFiles') {
                         sh 'aws eks update-kubeconfig --name my-eks-cluster'
-                        sh 'kubectl apply -f deployment.yaml'
-                        sh 'kubectl apply -f service.yaml'
+                        sh 'kubectl apply -f deployment.yml'
+                        sh 'kubectl apply -f service.yml'
                     }
                 }
             }
