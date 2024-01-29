@@ -11,4 +11,5 @@ variable "public_subnets" {
 variable "instance_type" {
   description = "Instance Type"
   type        = string
+  default     = "t2.medium"
 }
