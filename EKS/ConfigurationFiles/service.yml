@@ -12,4 +12,3 @@ spec:
     nodePort: 31000
   selector:
     app: netflix-clone
-  type: LoadBalancer
